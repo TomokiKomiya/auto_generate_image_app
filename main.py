@@ -1,18 +1,23 @@
+from flask import Flask, request, jsonify
 import openai
 import requests
 import time
 from datetime import datetime
 from google.cloud import storage
+from google.oauth2 import service_account
 from dotenv import load_dotenv
 import os
 import random
 
+app = Flask(__name__)
 load_dotenv()
 
 # OpenAI API key
 openai.api_key = os.getenv('OPENAI_API_KEY')
 ACCESS_TOKEN = os.getenv('THREADS_ACCESS_TOKEN')
 BUSINESS_ACCOUNT_ID = os.getenv('THREADS_BUSINESS_ACCOUNT_ID')
+GCP_CREDENTIAL_KEY = os.getenv('GCP_CREDENTIAL_KEY')
+credentials = service_account.Credentials.from_service_account_file(GCP_CREDENTIAL_KEY)
 
 house_type = [
     "1LDK",
@@ -94,16 +99,11 @@ def create_post_detail(image_url, my_prompt):
     return ai_response
   
 def upload_to_bucket(blob_name, file_path, bucket_name):
-    # Create a Cloud Storage client
-    storage_client = storage.Client()
-    # Get the bucket that the file will be uploaded to
+    storage_client = storage.Client(credentials=credentials)
     bucket = storage_client.bucket(bucket_name)
-    # Create a new blob and upload the file's content
-    blob = bucket.blob(blob_name+'.png')
+    blob = bucket.blob(blob_name + '.png')
     blob.upload_from_filename(file_path)
-    # Make the blob publicly viewable
     blob.make_public()
-    # Return the public URL of the uploaded file
     return blob.public_url
 
 def post_threads(image_url, caption):
@@ -131,21 +131,27 @@ def post_threads(image_url, caption):
     else:
         print(f"Failed to create media object: {response.text}")
 
-if __name__ == '__main__':
-    # pick cartoon and pattern
-    house_type = random.choice(house_type)
-    price = random.choice(price)
-    architectural_style = random.choice(architectural_style)
-    my_prompt = f"{architectural_style} with {house_type} at a cost of {price}. Do not include text."
+@app.route('/generate_and_post', methods=['POST'])
+def generate_and_post():
+    house_type_selected = random.choice(house_type)
+    price_selected = random.choice(price)
+    architectural_style_selected = random.choice(architectural_style)
+    my_prompt = f"{architectural_style_selected} with {house_type_selected} at a cost of {price_selected}. Do not include text."
     image_path = f"/tmp/image_{BUSINESS_ACCOUNT_ID}.png"
     image_url = generate_image_for_api(my_prompt)
-    res = save_image(image_url, image_path)
-    current_time = int(time.time())
-    date_time = datetime.fromtimestamp(current_time)
-    current_time_string = date_time.strftime("%Y-%m-%d %H:%M")
-    image_url = upload_to_bucket(current_time_string, image_path, "ai-bot-app-dev")
-    print(image_url)
-    ai_response = create_post_detail(image_url, my_prompt)
-    caption = f"{ai_response} #{architectural_style} #{house_type} #{price}"
-    post_threads(image_url, caption)
+    save_image(image_url, image_path)
+    current_time_string = datetime.now().strftime("%Y-%m-%d %H:%M")
+    public_image_url = upload_to_bucket(current_time_string, image_path, "ai-bot-app-dev")
+    ai_response = create_post_detail(public_image_url, my_prompt)
+    caption = f"{ai_response} #{architectural_style_selected} #{house_type_selected} #{price_selected}"
+    post_threads(public_image_url, caption)
+    return jsonify({"message": "Image generated and posted successfully."})
 
+@app.route("/")
+def hello_world():
+    """Example Hello World route."""
+    name = os.environ.get("NAME", "World")
+    return f"Hello {name}!"
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))

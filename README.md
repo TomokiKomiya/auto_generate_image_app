@@ -64,3 +64,9 @@ Before you begin, ensure you have the following installed:
 
 3. **Output**: Check the terminal for the image URL and confirmation that the post was published successfully.
 
+
+## Deploy
+1. Push docker file.
+   ```bash
+   gcloud builds submit --tag gcr.io/post-image-dev/post-threads:latest .
+   ```
