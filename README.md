@@ -70,12 +70,3 @@ Before you begin, ensure you have the following installed:
    ```bash
    gcloud builds submit --tag gcr.io/post-image-dev/post-threads:latest .
    ```
-2. Deploy cloud run.
-   ```bash
-   gcloud run deploy post-threads \
-   --image gcr.io/post-image-dev/post-threads \
-   --platform managed \
-   --region asia-northeast1 \
-   --allow-unauthenticated \
-   --set-env-vars OPENAI_API_KEY='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',THREADS_ACCESS_TOKEN='THQWJWUzJ5cUd3VGh3bXN6YnVyTFZA2RnFqbFEwbWxtZAVRKSUJBT3IzTXA2QlREdS1KVTFMZAlVOQUVYMkNPTVZA0RXFYXy1rMzNKOUFUVEtvWTJXWEQ2cjUxOEU0ZAnJDandtVnhHNWQtU0RreHJiV05qN2RlWWpfbEVBSUVaTjNlckdzU1JZAR09z',THREADS_BUSINESS_ACCOUNT_ID='26311894788457389'
-   ```
