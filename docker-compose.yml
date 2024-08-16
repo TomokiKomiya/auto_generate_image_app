@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - THREADS_ACCESS_TOKEN=${THREADS_ACCESS_TOKEN}
+      - THREADS_BUSINESS_ACCOUNT_ID=${THREADS_BUSINESS_ACCOUNT_ID}
+      - GCP_CREDENTIAL_KEY=${GCP_CREDENTIAL_KEY}
+      - PORT=8080
+    volumes:
+      - .:/app
